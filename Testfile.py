@@ -5,5 +5,5 @@ def get_and_print_five():
 
     return 1
 
-x = 4
-y = 5
+x = 4200
+y = 500

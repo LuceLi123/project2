@@ -569,18 +569,18 @@ Q1_ANSWER = 'TSLA'
 
 # Q2: What is the annualised return for the EW portfolio of all your stocks in
 # the config.TICMAP dictionary from the beginning of 2010 to the end of 2020?
-Q2_ANSWER = '0.20435428936872047'
+Q2_ANSWER = '0.2044' #0.20435428936872047
 
 # Q3: What is the annualised daily return for the period from 2010 to 2020 for
 # the stock with the highest average return in 2020 (the one you identified in
 # the first question above)?
-Q3_ANSWER = '0.5516209538619083'
+Q3_ANSWER = '0.5516' #0.5516209538619083
 
 # Q4: What is the annualised daily ABNORMAL return for the period from 2010 to 2020 for
 # the stock with the highest average return in 2020 (the one you identified in
 # the first question Q1 above)? Abnormal returns are calculated by subtracting
 # the market return ("mkt") from the individual stock return.
-Q4_ANSWER = '0.3770885290285164'
+Q4_ANSWER = '0.3771' #0.3770885290285164
     
 
 

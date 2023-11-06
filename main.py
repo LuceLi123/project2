@@ -21,7 +21,7 @@ if __name__ == "__main__":
     for tic in tickers:
         avg_2020[tic] = pj.get_avg(df, tic, 2020)
     max_tic = max(avg_2020, key=avg_2020.get)
-    print(f'The answer of Q1 is {max_tic}, with average return in 2020 is {avg_2020[max_tic]}')
+    print(f'The answer of Q1 is {max_tic}, with average return in 2020 is {avg_2020[max_tic]:.4f}')
 
 
 
@@ -30,7 +30,7 @@ if __name__ == "__main__":
     Q2_ANSWER = '0.20435428936872047'
 
     ann_ret = pj.get_ann_ret(pj.get_ew_rets(df, tickers), start='2010', end='2020')
-    print(f'The answer of Q2 is {ann_ret}')
+    print(f'The answer of Q2 is {ann_ret:.4f}')
 
 
 
@@ -40,7 +40,7 @@ if __name__ == "__main__":
     Q3_ANSWER = '0.5516209538619083'
 
     max_ann = pj.get_ann_ret(df[max_tic], start='2010', end='2020')
-    print(f'The answer of Q3 is {max_ann}')
+    print(f'The answer of Q3 is {max_ann:.4f}')
 
 
 
@@ -52,5 +52,5 @@ if __name__ == "__main__":
 
     aret_df = pj.mk_aret_df(df)
     max_a_ann = pj.get_ann_ret(aret_df[max_tic], start='2010', end='2020')
-    print(f'The answer of Q4 is {max_a_ann}')
+    print(f'The answer of Q4 is {max_a_ann:.4f}')
 

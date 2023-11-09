@@ -1,4 +1,4 @@
-""" zid_project2.py
+""" z5521677_project2.py
 
 """
 # ---------------------------------------------------------------------------- 
@@ -10,18 +10,16 @@
 # ---------------------------------------------------------------------------- 
 
 import os
-
 import pandas as pd
+import pprint
 
-
-# ---------------------------------------------------------------------------- 
+# ----------------------------------------------------------------------------
 # Part 2: import the config module inside the project2 package
 # ---------------------------------------------------------------------------- 
 # Create an import statement so that the module config.py (inside the project2 
 # package) is imported as "cfg"
 # Note: This module should be imported as cfg
-
-import toolkit_config as cfg
+import config as cfg
 
 
 # ---------------------------------------------------------------------------- 
@@ -81,7 +79,12 @@ def read_prc_csv(tic):
        'aaa.csv' are different files). 
 
     """
-    # <COMPLETE THIS PART>
+    tic_prc_csv = os.path.join(cfg.DATADIR, f"{tic.lower()}_prc.csv")
+    df = pd.read_csv(tic_prc_csv)
+    df['Date'] = pd.to_datetime(df['Date'])
+    df.set_index('Date', inplace=True)
+    df = cfg.standardise_colnames(df)
+    return df
 
 
 # ---------------------------------------------------------------------------- 
@@ -183,9 +186,14 @@ def mk_prc_df(tickers, prc_col='adj_close'):
 
 
     """
-    # <COMPLETE THIS PART>
-
-
+    df = pd.DataFrame()
+    for tic in tickers:
+        tic = tic.lower()
+        tic_file = read_prc_csv(tic)
+        df1 = tic_file.loc[:, [prc_col]]
+        df1 = df1.rename(columns={prc_col: tic})
+        df = pd.concat([df, cfg.standardise_colnames(df1)], axis=1)
+    return df
 
 
 # ---------------------------------------------------------------------------- 
@@ -258,9 +266,12 @@ def mk_ret_df(prc_df):
 
 
     """
-    # <COMPLETE THIS PART>
-
-
+    ff_csv = pd.read_csv(cfg.FF_CSV)
+    ff_csv['Date'] = pd.to_datetime(ff_csv['Date'], format='%Y-%m-%d')
+    df_mkt = ff_csv.set_index('Date').loc[:, ['mkt']]
+    prc_df = prc_df.sort_index().pct_change(fill_method=None)
+    df = prc_df.join(df_mkt)
+    return df
 
 
 # ---------------------------------------------------------------------------- 
@@ -326,8 +337,11 @@ def mk_aret_df(ret_df):
         memory usage: 5.9 KB
     
     """
-    # <COMPLETE THIS PART>
-
+    df = pd.DataFrame(index=ret_df.index)
+    for col in ret_df.columns:
+        if col != 'mkt':
+            df[col] = ret_df[col] - ret_df['mkt']
+    return df
 
 
 # ---------------------------------------------------------------------------- 
@@ -379,8 +393,10 @@ def get_avg(df, col, year):
         0.032
 
     """
-    #<COMPLETE THIS PART>
-
+    df_dropna = df[col].dropna()
+    df_data = df_dropna[df_dropna.index.year == year]
+    avg = df_data.mean()
+    return avg
 
 
 def get_ew_rets(df, tickers):
@@ -422,10 +438,12 @@ def get_ew_rets(df, tickers):
     2020-11-12    1.5
     dtype: float64
 
-
     """
-    #<COMPLETE THIS PART>
-
+    ew_return = pd.Series(index=df.index)
+    for index, row in df.iterrows():
+        rows_dropna = row[tickers].dropna()
+        ew_return.loc[index] = rows_dropna.mean() if not rows_dropna.empty else None
+    return ew_return
 
 
 def get_ann_ret(ser, start, end):
@@ -470,8 +488,22 @@ def get_ann_ret(ser, start, end):
       computation of tot_ret
 
     """
-    # <COMPLETE THIS PART>
-
+    ser_data = ser.loc[start:end].dropna()
+    pprint.pprint(f"ser_data: {ser_data}")
+    N = ser_data.count()
+    tot_ret = ser_data.prod()
+    print(f"Total return (tot_ret): {tot_ret}")
+    print(f"Number of days with non-missing returns (N): {N}")
+    if N != 0:
+        if tot_ret < 0:
+            annualised_return = (abs(tot_ret) ** (252 / N)) * (-1) - 1
+        else:
+            annualised_return = (tot_ret ** (252 / N)) - 1
+        print(f"Annualised return: {annualised_return}")
+    else:
+        annualised_return = None
+    return annualised_return
+    ## 算不出这个
 
 # ----------------------------------------------------------------------------
 # Part 8: Answer the following questions
@@ -500,14 +532,12 @@ def get_ann_ret(ser, start, end):
 #  
 #   You should replace the '?' with the correct answer:
 #   Q0_answer = 'CSCO'
-#  
 
 # Q1: Which stock in your sample has the highest average daily return for the
 #     year 2020 (ignoring missing values)? The sample should include all tickers
 #     included in the dictionary config.TICMAP. Your answer should include the
 #     ticker for this stock.
-Q1_ANSWER = '?'
-
+Q1_ANSWER = 'v'
 
 # Q2: What is the annualised return for the EW portfolio of all your stocks in
 # the config.TICMAP dictionary from the beginning of 2010 to the end of 2020?
@@ -523,8 +553,6 @@ Q3_ANSWER = '?'
 # the first question Q1 above)? Abnormal returns are calculated by subtracting
 # the market return ("mkt") from the individual stock return.
 Q4_ANSWER = '?'
-    
-
 
 
 # ----------------------------------------------------------------------------
@@ -544,7 +572,7 @@ def _test_print(obj, msg=None):
 
     """
     import pprint as pp
-    sep = '-'*40
+    sep = '-' * 40
     if isinstance(obj, str):
         prt = obj
     else:
@@ -556,12 +584,13 @@ def _test_print(obj, msg=None):
         '',
         sep,
         prt,
-        ]
+    ]
     print('\n'.join(to_print))
     if isinstance(obj, pd.DataFrame):
         print('')
         obj.info()
     print(sep)
+
 
 # This is an auxiliary function, please do not modify
 def _test_cfg():
@@ -596,6 +625,7 @@ def _test_read_prc_csv():
     tic = 'TSLA'
     df = read_prc_csv(tic)
     _test_print(df)
+    pprint.pprint(df)
 
 
 def _test_mk_prc_df():
@@ -604,6 +634,7 @@ def _test_mk_prc_df():
     tickers = ['AAPL', 'TSLA']
     prc_df = mk_prc_df(tickers, prc_col='adj_close')
     _test_print(prc_df)
+
 
 def _test_mk_ret_df():
     """ Test function for the `mk_ret_df` function
@@ -633,27 +664,27 @@ def _test_mk_ret_df():
     # Test data frame
     prc_df = pd.DataFrame({
         'aapl': [
-            121.09, 
-            121.19, 
-            120.70, 
+            121.09,
+            121.19,
+            120.70,
             119.01,
-            124.40, 
-            ],
+            124.40,
+        ],
         'tsla': [
-            446.64, 
-            461.29, 
-            448.88, 
+            446.64,
+            461.29,
+            448.88,
             439.67,
-            None, 
-            ],
-        },
+            None,
+        ],
+    },
         index=pd.to_datetime([
-            '2020-10-13', 
-            '2020-10-14', 
-            '2020-10-15', 
+            '2020-10-13',
+            '2020-10-14',
+            '2020-10-15',
             '2020-10-16',
-            '2020-10-12', 
-            ],
+            '2020-10-12',
+        ],
         ))
     msg = "The input data frame `prc_df` is:"
     _test_print(prc_df, msg=msg)
@@ -689,34 +720,34 @@ def _test_mk_aret_df():
 
     """
     idx = pd.to_datetime([
-        '2020-10-12', 
-        '2020-10-13', 
-        '2020-10-14', 
-        '2020-10-15', 
-        '2020-10-16', 
-        ])
+        '2020-10-12',
+        '2020-10-13',
+        '2020-10-14',
+        '2020-10-15',
+        '2020-10-16',
+    ])
     aapl = [
-        None, 
-        -0.026608, 
-         0.000826, 
-        -0.004043, 
-        -0.014002, 
-        ]
-    tsla = [
-        None, 
         None,
-         0.032800,
+        -0.026608,
+        0.000826,
+        -0.004043,
+        -0.014002,
+    ]
+    tsla = [
+        None,
+        None,
+        0.032800,
         -0.026903,
         -0.020518,
-        ]
+    ]
     mkt = [
-      0.0153,
-     -0.0041,
-     -0.0065,
-     -0.0008,
-     -0.0006,
-     ]
-    ret_df = pd.DataFrame({'aapl': aapl, 'tsla': tsla, 'mkt': mkt,}, index=idx)
+        0.0153,
+        -0.0041,
+        -0.0065,
+        -0.0008,
+        -0.0006,
+    ]
+    ret_df = pd.DataFrame({'aapl': aapl, 'tsla': tsla, 'mkt': mkt, }, index=idx)
     _test_print(ret_df)
 
     aret_df = mk_aret_df(ret_df)
@@ -732,21 +763,20 @@ def _test_get_avg():
         '2019-01-02': 2.0,
         '2020-10-02': 4.0,
         '2020-11-12': 4.0,
-        })
+    })
     df = pd.DataFrame({'some_tic': prc})
     df.index = pd.to_datetime(df.index)
-    
+
     msg = 'This is the test data frame `df`:'
     _test_print(df, msg)
 
-
     res = get_avg(df, 'some_tic', 2019)
     to_print = [
-            "This means `res =get_avg(df, col='some_tic', year=2019) --> 1.5",
-            f"The value of `res` is {res}",
-            ]
+        "This means `res =get_avg(df, col='some_tic', year=2019) --> 1.5",
+        f"The value of `res` is {res}",
+    ]
     _test_print('\n'.join(to_print))
-    
+
 
 def _test_get_ew_rets():
     """ Test function for `get_ew_rets`
@@ -772,9 +802,9 @@ def _test_get_ew_rets():
 
     """
     # Made-up data
-    tic1 = [1.0, 2.0, 1.0, 2.0,]
-    tic2 = [2.0, None, 2.0, 1.0,]
-    tic3 = [99, 99, 99, 99,]
+    tic1 = [1.0, 2.0, 1.0, 2.0, ]
+    tic2 = [2.0, None, 2.0, 1.0, ]
+    tic3 = [99, 99, 99, 99, ]
     idx = pd.to_datetime(['2019-01-01', '2019-01-02', '2020-10-02', '2020-11-12'])
     df = pd.DataFrame({'tic1': tic1, 'tic2': tic2, 'tic3': tic3}, index=idx)
     msg = 'This is the test data frame `df`:'
@@ -783,7 +813,6 @@ def _test_get_ew_rets():
     ew_ret = get_ew_rets(df, ['tic1', 'tic2'])
     msg = "The output of get_ew_rets(df, ['tic1', 'tic2']) is:"
     _test_print(ew_ret, msg)
-
 
 
 def _mk_test_ser():
@@ -829,10 +858,10 @@ def _mk_test_ser():
     tot_ret = 1.5
     n = 400
     start = '2010-01-01'
-    daily_yield = tot_ret**(1.0/n)-1
+    daily_yield = tot_ret ** (1.0 / n) - 1
 
     # This is the expected result (the annualised return)
-    exp_res = tot_ret ** (252./n) - 1
+    exp_res = tot_ret ** (252. / n) - 1
 
     # Create a series of timedelta objects, representing
     # 0, 1, 2, ... days
@@ -841,33 +870,33 @@ def _mk_test_ser():
     idx = start_dt + days_to_add
 
     # Then create the series
-    ser = pd.Series([daily_yield]*n, index=idx)
+    ser = pd.Series([daily_yield] * n, index=idx)
 
     # So, `get_ann_ret(ser, start, end) --> exp_res`
     # We have the `ser` and `start`. What about `end`?
     end = ser.index.max().strftime('%Y-%m-%d')
-    
+
     to_print = [
-            f"Given the parameters:",
-            f"   - tot_ret is {tot_ret}",
-            f"   - N is {n}",
-            f"   - start is '{start}'",
-            f"   - end is '{end}'",
-            f" For the period from '{start}' to '{end}'",
-            f" the annualised return is: {exp_res}",
-            "",
-            f"For this `ser`, `get_ann_ret(ser, '{start}', '{end}')` --> {exp_res}",
-            ]
+        f"Given the parameters:",
+        f"   - tot_ret is {tot_ret}",
+        f"   - N is {n}",
+        f"   - start is '{start}'",
+        f"   - end is '{end}'",
+        f" For the period from '{start}' to '{end}'",
+        f" the annualised return is: {exp_res}",
+        "",
+        f"For this `ser`, `get_ann_ret(ser, '{start}', '{end}')` --> {exp_res}",
+    ]
     print('\n'.join(to_print))
 
     # add periods before `start` and `end`
     start_dt, end_dt = ser.index.min(), ser.index.max()
 
     idx_bef = start_dt + pd.to_timedelta([-3, -2, -1], unit='day')
-    ser_bef = pd.Series([-99]*len(idx_bef), index=idx_bef)
+    ser_bef = pd.Series([-99] * len(idx_bef), index=idx_bef)
 
     idx_after = end_dt + pd.to_timedelta([1, 2, 3], unit='day')
-    ser_after = pd.Series([99]*len(idx_after), index=idx_after)
+    ser_after = pd.Series([99] * len(idx_after), index=idx_after)
 
     ser = pd.concat([ser_bef, ser, ser_after])
 
@@ -896,11 +925,11 @@ def _test_get_ann_ret():
     tot_ret = 1.5
     n = 400
     start = '2010-01-01'
-    daily_yield = tot_ret ** (1.0/n) - 1
+    daily_yield = tot_ret ** (1.0 / n) - 1
     print(daily_yield)
 
     # This is what the function `get_ann_ret` should return
-    expected_res = tot_ret ** (252./n) - 1
+    expected_res = tot_ret ** (252.0 / n) - 1
 
     # Create the index
     # This will add `n` days to `start`
@@ -915,18 +944,15 @@ def _test_get_ann_ret():
     # Create a series with `n` copies of `daily_yield`
     ser = pd.Series([daily_yield] * n, index=dt_idx)
 
-
     # Add days before `start` and after `end`
     dt_bef_idx = pd.to_datetime(start) + pd.to_timedelta([-3, -2, -1], unit='day')
-    ser_before = pd.Series([-99]*3, index=dt_bef_idx)
-
+    ser_before = pd.Series([-99] * 3, index=dt_bef_idx)
 
     dt_after_idx = pd.to_datetime(end) + pd.to_timedelta([1, 2, 3], unit='day')
-    ser_after = pd.Series([-99]*3, index=dt_after_idx)
+    ser_after = pd.Series([-99] * 3, index=dt_after_idx)
 
     # combine series
     ser = pd.concat([ser_before, ser, ser_after])
-
 
     msg = 'This is the test ser `ser`:'
     _test_print(ser, msg)
@@ -935,34 +961,17 @@ def _test_get_ann_ret():
     to_print = [
         f"This means `res = get_ann_ret(ser, start='{start}', end='{end}') --> {expected_res}",
         f"The value of `res` is {res}",
-        ]
+    ]
     _test_print('\n'.join(to_print))
-
 
 
 if __name__ == "__main__":
     pass
-    #_test_cfg()
-    #_test_read_prc_csv()
-    #_test_mk_prc_df()
-    #_test_mk_ret_df()
-    #_test_mk_aret_df()
-    #_test_get_avg()
-    #_test_get_ew_rets()
-    #_test_get_ann_ret()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    _test_cfg()
+    _test_read_prc_csv()
+    _test_mk_prc_df()
+    _test_mk_ret_df()
+    _test_mk_aret_df()
+    _test_get_avg()
+    _test_get_ew_rets()
+    _test_get_ann_ret()

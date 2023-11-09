@@ -11,6 +11,7 @@
 
 import os
 
+import numpy as np
 import pandas as pd
 
 
@@ -21,7 +22,8 @@ import pandas as pd
 # package) is imported as "cfg"
 # Note: This module should be imported as cfg
 #
-# <COMPLETE THIS PART>
+from project2 import config as cfg
+
 
 
 
@@ -82,7 +84,11 @@ def read_prc_csv(tic):
        'aaa.csv' are different files). 
 
     """
-    # <COMPLETE THIS PART>
+    tic = tic.lower()
+    file_path = os.path.join(cfg.DATADIR, f'{tic}_prc.csv')
+    tic_df = pd.read_csv(file_path)
+    return tic_df
+
 
 
 
@@ -113,15 +119,15 @@ def mk_prc_df(tickers, prc_col='adj_close'):
     df
         A Pandas data frame containing the `prc_col` price for each stock
         in the `tickers` list:
-        
+
         - df.index: DatetimeIndex with dates. The labels in this index must
           include all dates for which there is at least one valid price quote
-          for one ticker in `tickers`.  
+          for one ticker in `tickers`.
 
 
         - df.columns: each column label will contain the ticker code (in lower
           case). The number of columns in this data frame must correspond to
-          the number of tickers in the ``tickers` parameter. 
+          the number of tickers in the ``tickers` parameter.
 
     Notes
     -----
@@ -136,7 +142,7 @@ def mk_prc_df(tickers, prc_col='adj_close'):
     create).
 
     Example 1: Suppose there are two tickers in `tickers`, "tic1" and "tic2".
-    Suppose the following information is available for each ticker: 
+    Suppose the following information is available for each ticker:
 
       tic1:
           | <date col> | <prc_col> |
@@ -155,7 +161,7 @@ def mk_prc_df(tickers, prc_col='adj_close'):
           |------------+------+------|
           | 2020-01-02 | 1.0  | NaN  |
           | 2020-01-10 | NaN  | 2.0  |
-    
+
     The DatetimeIndex will include objects representing the dates 2020-01-02
     and 2020-01-10. The reason 2020-03-10 is not included is because there is
     no price information (for any ticker in `tickers`) on that date.
@@ -186,7 +192,18 @@ def mk_prc_df(tickers, prc_col='adj_close'):
 
 
     """
-    # <COMPLETE THIS PART>
+    prc_df = pd.DataFrame()
+    for tic in tickers:
+        df_tic = (cfg.standardise_colnames(read_prc_csv(tic)))
+        # Raise ValueError if prc_col not in the DataFrame for ticker in tickers
+        if prc_col not in df_tic.columns:
+            raise ValueError(f"The price column '{prc_col}' is not in the DataFrame for ticker '{tic}'.")
+        df_tic.set_index('date', inplace=True)
+        df_tic.index = pd.to_datetime(df_tic.index, format='%Y-%m-%d')
+        prc_df = prc_df.join(df_tic[prc_col].rename(tic.lower()), how='outer')
+    prc_df.sort_index(inplace=True)
+    prc_df.info()
+    return prc_df
 
 
 
@@ -261,7 +278,30 @@ def mk_ret_df(prc_df):
 
 
     """
-    # <COMPLETE THIS PART>
+    # Calculate the percentage change of a stock
+    def pct_change(tic_prc):
+        tic_ret = [tic_prc[i] / tic_prc[i-1] - 1 if i != 0 else np.nan for i in range(len(tic_prc))]
+        tic_ret = pd.Series(tic_ret, index=tic_prc.index)
+        return tic_ret
+
+    ret_df = pd.DataFrame()
+
+    # The columns of stocks' return
+    prc_df.sort_index(inplace=True)
+    for tic in prc_df.columns:
+        tic_prc = prc_df[tic]
+        ret_df = ret_df.join(pct_change(tic_prc).rename(tic.lower()), how='outer')
+
+    # The column of market return mkt
+    market_df = pd.read_csv(cfg.FF_CSV)
+    market_df['Date'] = pd.to_datetime(market_df['Date'])
+    market_df.set_index('Date', inplace=True)
+    market_returns = market_df[['mkt']].dropna()
+    ret_df = ret_df.join(market_returns, how='left')
+    ret_df.info()
+
+    return ret_df
+
 
 
 
@@ -329,7 +369,13 @@ def mk_aret_df(ret_df):
         memory usage: 5.9 KB
     
     """
-    # <COMPLETE THIS PART>
+    aret_df = pd.DataFrame(index=ret_df.index)
+    for tic in ret_df.columns:
+        if tic == 'mkt':
+            break
+        else:
+            aret_df[tic] = [ret_df[tic][i] - ret_df['mkt'][i] for i in range(len(ret_df))]
+    return aret_df
 
 
 
@@ -382,8 +428,10 @@ def get_avg(df, col, year):
         0.032
 
     """
-    #<COMPLETE THIS PART>
+    df_year = df[df.index.year == year]
+    avg_value = df_year[col].mean(skipna=True)
 
+    return avg_value
 
 
 def get_ew_rets(df, tickers):
@@ -427,8 +475,10 @@ def get_ew_rets(df, tickers):
 
 
     """
-    #<COMPLETE THIS PART>
+    ew_df = df[tickers]
+    ew_returns = ew_df.mean(axis=1, skipna=True)
 
+    return ew_returns
 
 
 def get_ann_ret(ser, start, end):
@@ -473,7 +523,12 @@ def get_ann_ret(ser, start, end):
       computation of tot_ret
 
     """
-    # <COMPLETE THIS PART>
+    period_ser = ser[start:end].dropna()
+    tot_ret = (1 + period_ser).prod()
+    N = period_ser.count()
+    annualised_ret = (tot_ret ** (252 / N)) - 1 if N != 0 else None
+
+    return annualised_ret
 
 
 # ----------------------------------------------------------------------------
@@ -509,23 +564,23 @@ def get_ann_ret(ser, start, end):
 #     year 2020 (ignoring missing values)? The sample should include all tickers
 #     included in the dictionary config.TICMAP. Your answer should include the
 #     ticker for this stock.
-Q1_ANSWER = '?'
+Q1_ANSWER = 'TSLA'
 
 
 # Q2: What is the annualised return for the EW portfolio of all your stocks in
 # the config.TICMAP dictionary from the beginning of 2010 to the end of 2020?
-Q2_ANSWER = '?'
+Q2_ANSWER = '0.2044' #0.20435428936872047
 
 # Q3: What is the annualised daily return for the period from 2010 to 2020 for
 # the stock with the highest average return in 2020 (the one you identified in
 # the first question above)?
-Q3_ANSWER = '?'
+Q3_ANSWER = '0.5516' #0.5516209538619083
 
 # Q4: What is the annualised daily ABNORMAL return for the period from 2010 to 2020 for
 # the stock with the highest average return in 2020 (the one you identified in
 # the first question Q1 above)? Abnormal returns are calculated by subtracting
 # the market return ("mkt") from the individual stock return.
-Q4_ANSWER = '?'
+Q4_ANSWER = '0.3771' #0.3770885290285164
     
 
 
@@ -944,15 +999,14 @@ def _test_get_ann_ret():
 
 
 if __name__ == "__main__":
-    pass
-    #_test_cfg()
-    #_test_read_prc_csv()
-    #_test_mk_prc_df()
-    #_test_mk_ret_df()
-    #_test_mk_aret_df()
-    #_test_get_avg()
-    #_test_get_ew_rets()
-    #_test_get_ann_ret()
+    _test_cfg()
+    _test_read_prc_csv()
+    _test_mk_prc_df()
+    _test_mk_ret_df()
+    _test_mk_aret_df()
+    _test_get_avg()
+    _test_get_ew_rets()
+    _test_get_ann_ret()
 
 
 

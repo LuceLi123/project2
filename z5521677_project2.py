@@ -491,26 +491,23 @@ def get_ann_ret(ser, start, end):
     ser_data = ser.loc[start:end].dropna()
     pprint.pprint(f"ser_data: {ser_data}")
     N = ser_data.count()
-    tot_ret = ser_data.prod()
+    tot_ret = (1 + ser_data).prod()
     print(f"Total return (tot_ret): {tot_ret}")
     print(f"Number of days with non-missing returns (N): {N}")
-    if N != 0:
-        if tot_ret < 0:
-            annualised_return = (abs(tot_ret) ** (252 / N)) * (-1) - 1
-        else:
-            annualised_return = (tot_ret ** (252 / N)) - 1
-        print(f"Annualised return: {annualised_return}")
+    if tot_ret < 0:
+        annualised_return = (abs(tot_ret) ** (252 / N)) * (-1) - 1
     else:
-        annualised_return = None
+        annualised_return = (tot_ret ** (252 / N)) - 1 if N != 0 else None
+    print(f"Annualised return: {annualised_return}")
     return annualised_return
-    ## 算不出这个
+
 
 # ----------------------------------------------------------------------------
 # Part 8: Answer the following questions
 # ----------------------------------------------------------------------------
 # NOTES:
 # 
-# - You can create a separate module (you can call it main.py if you want) 
+# - You can create a separate module (you can call it main_lnh.py if you want)
 #   and then use the functions defined above to answer the questions below. 
 #   YOU DO NOT NEED TO SUBMIT THIS OTHER MODULE YOU CREATE. THE ONLY MODULE
 #   YOU NEED TO SUBMIT IS THIS ONE, zid_project2.py.
@@ -541,7 +538,7 @@ Q1_ANSWER = 'v'
 
 # Q2: What is the annualised return for the EW portfolio of all your stocks in
 # the config.TICMAP dictionary from the beginning of 2010 to the end of 2020?
-Q2_ANSWER = '?'
+Q2_ANSWER = '0.2044' #0.20435428936872047
 
 # Q3: What is the annualised daily return for the period from 2010 to 2020 for
 # the stock with the highest average return in 2020 (the one you identified in

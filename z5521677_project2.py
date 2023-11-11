@@ -489,16 +489,16 @@ def get_ann_ret(ser, start, end):
 
     """
     ser_data = ser.loc[start:end].dropna()
-    pprint.pprint(f"ser_data: {ser_data}")
+    # pprint.pprint(f"ser_data: {ser_data}")
     N = ser_data.count()
     tot_ret = (1 + ser_data).prod()
-    print(f"Total return (tot_ret): {tot_ret}")
-    print(f"Number of days with non-missing returns (N): {N}")
+    # print(f"Total return (tot_ret): {tot_ret}")
+    # print(f"Number of days with non-missing returns (N): {N}")
     if tot_ret < 0:
         annualised_return = (abs(tot_ret) ** (252 / N)) * (-1) - 1
     else:
         annualised_return = (tot_ret ** (252 / N)) - 1 if N != 0 else None
-    print(f"Annualised return: {annualised_return}")
+    # print(f"Annualised return: {annualised_return}")
     return annualised_return
 
 
@@ -534,22 +534,22 @@ def get_ann_ret(ser, start, end):
 #     year 2020 (ignoring missing values)? The sample should include all tickers
 #     included in the dictionary config.TICMAP. Your answer should include the
 #     ticker for this stock.
-Q1_ANSWER = 'v'
+Q1_ANSWER = 'tsla'
 
 # Q2: What is the annualised return for the EW portfolio of all your stocks in
 # the config.TICMAP dictionary from the beginning of 2010 to the end of 2020?
-Q2_ANSWER = '0.2044' #0.20435428936872047
+Q2_ANSWER = '0.2044'  # 0.20435428936872047
 
 # Q3: What is the annualised daily return for the period from 2010 to 2020 for
 # the stock with the highest average return in 2020 (the one you identified in
 # the first question above)?
-Q3_ANSWER = '?'
+Q3_ANSWER = '0.5516'  # 0.5516209538619083
 
 # Q4: What is the annualised daily ABNORMAL return for the period from 2010 to 2020 for
 # the stock with the highest average return in 2020 (the one you identified in
 # the first question Q1 above)? Abnormal returns are calculated by subtracting
 # the market return ("mkt") from the individual stock return.
-Q4_ANSWER = '?'
+Q4_ANSWER = '0.3771'  # 0.3770885290285164
 
 
 # ----------------------------------------------------------------------------

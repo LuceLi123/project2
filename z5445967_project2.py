@@ -11,7 +11,7 @@
 
 import os
 
-import numpy as np
+
 import pandas as pd
 
 
@@ -86,8 +86,10 @@ def read_prc_csv(tic):
     """
     tic = tic.lower()
     file_path = os.path.join(cfg.DATADIR, f'{tic}_prc.csv')
-    tic_df = pd.read_csv(file_path)
-    return tic_df
+    tic_df = pd.read_csv(file_path, index_col=0)
+    tic_df.index = pd.DatetimeIndex(tic_df.index)
+
+    return cfg.standardise_colnames(tic_df)
 
 
 
@@ -192,19 +194,10 @@ def mk_prc_df(tickers, prc_col='adj_close'):
 
 
     """
-    prc_df = pd.DataFrame()
-    for tic in tickers:
-        df_tic = (cfg.standardise_colnames(read_prc_csv(tic)))
-        # Raise ValueError if prc_col not in the DataFrame for ticker in tickers
-        if prc_col not in df_tic.columns:
-            raise ValueError(f"The price column '{prc_col}' is not in the DataFrame for ticker '{tic}'.")
-        df_tic.set_index('date', inplace=True)
-        df_tic.index = pd.to_datetime(df_tic.index, format='%Y-%m-%d')
-        prc_df = prc_df.join(df_tic[prc_col].rename(tic.lower()), how='outer')
-    prc_df.sort_index(inplace=True)
-    prc_df.info()
+    data_list = [cfg.standardise_colnames(read_prc_csv(tic)[[prc_col]].rename(columns={prc_col: tic}))
+                 for tic in tickers]
+    prc_df = pd.concat(data_list, axis=1, join='outer')
     return prc_df
-
 
 
 
@@ -279,28 +272,18 @@ def mk_ret_df(prc_df):
 
     """
     # Calculate the percentage change of a stock
-    def pct_change(tic_prc):
-        tic_ret = [tic_prc[i] / tic_prc[i-1] - 1 if i != 0 else np.nan for i in range(len(tic_prc))]
-        tic_ret = pd.Series(tic_ret, index=tic_prc.index)
-        return tic_ret
+    ff_daily = pd.read_csv(cfg.FF_CSV, index_col=0)
+    ff_daily = cfg.standardise_colnames(ff_daily)
+    ff_daily.index = pd.DatetimeIndex(ff_daily.index)
+    ff_daily.sort_index(inplace=True)
+    ff_daily = ff_daily[['mkt']]
 
-    ret_df = pd.DataFrame()
-
-    # The columns of stocks' return
     prc_df.sort_index(inplace=True)
-    for tic in prc_df.columns:
-        tic_prc = prc_df[tic]
-        ret_df = ret_df.join(pct_change(tic_prc).rename(tic.lower()), how='outer')
+    prc_df = prc_df.pct_change()
+    prc_df.iloc[0] = None
 
-    # The column of market return mkt
-    market_df = pd.read_csv(cfg.FF_CSV)
-    market_df['Date'] = pd.to_datetime(market_df['Date'])
-    market_df.set_index('Date', inplace=True)
-    market_returns = market_df[['mkt']].dropna()
-    ret_df = ret_df.join(market_returns, how='left')
-    ret_df.info()
-
-    return ret_df
+    df = pd.concat([prc_df, ff_daily], axis=1, join='inner')
+    return df
 
 
 
@@ -369,12 +352,7 @@ def mk_aret_df(ret_df):
         memory usage: 5.9 KB
     
     """
-    aret_df = pd.DataFrame(index=ret_df.index)
-    for tic in ret_df.columns:
-        if tic == 'mkt':
-            break
-        else:
-            aret_df[tic] = [ret_df[tic][i] - ret_df['mkt'][i] for i in range(len(ret_df))]
+    aret_df = ret_df.subtract(ret_df['mkt'], axis=0).drop('mkt', axis=1)
     return aret_df
 
 
@@ -569,18 +547,18 @@ Q1_ANSWER = 'TSLA'
 
 # Q2: What is the annualised return for the EW portfolio of all your stocks in
 # the config.TICMAP dictionary from the beginning of 2010 to the end of 2020?
-Q2_ANSWER = '0.2044' #0.20435428936872047
+Q2_ANSWER = '0.2044'
 
 # Q3: What is the annualised daily return for the period from 2010 to 2020 for
 # the stock with the highest average return in 2020 (the one you identified in
 # the first question above)?
-Q3_ANSWER = '0.5516' #0.5516209538619083
+Q3_ANSWER = '0.5516'
 
 # Q4: What is the annualised daily ABNORMAL return for the period from 2010 to 2020 for
 # the stock with the highest average return in 2020 (the one you identified in
 # the first question Q1 above)? Abnormal returns are calculated by subtracting
 # the market return ("mkt") from the individual stock return.
-Q4_ANSWER = '0.3771' #0.3770885290285164
+Q4_ANSWER = '0.3771'
     
 
 
@@ -951,7 +929,7 @@ def _test_get_ann_ret():
 
     """
     # Parameters
-    tot_ret = 1.5
+    tot_ret = -1.5
     n = 400
     start = '2010-01-01'
     daily_yield = tot_ret ** (1.0/n) - 1

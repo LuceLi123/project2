@@ -536,7 +536,7 @@ def get_ann_ret(ser, start, end):
 # ----------------------------------------------------------------------------
 # NOTES:
 # 
-# - You can create a separate module (you can call it main.py if you want) 
+# - You can create a separate module (you can call it main_lnh.py if you want)
 #   and then use the functions defined above to answer the questions below. 
 #   YOU DO NOT NEED TO SUBMIT THIS OTHER MODULE YOU CREATE. THE ONLY MODULE
 #   YOU NEED TO SUBMIT IS THIS ONE, z5445967_project2.py.

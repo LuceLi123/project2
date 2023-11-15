@@ -929,7 +929,7 @@ def _test_get_ann_ret():
 
     """
     # Parameters
-    tot_ret = -1.5
+    tot_ret = 1.5
     n = 400
     start = '2010-01-01'
     daily_yield = tot_ret ** (1.0/n) - 1

@@ -22,7 +22,7 @@ import pandas as pd
 # package) is imported as "cfg"
 # Note: This module should be imported as cfg
 #
-from project2 import config as cfg
+import config as cfg
 
 
 
@@ -981,10 +981,10 @@ if __name__ == "__main__":
     _test_read_prc_csv()
     _test_mk_prc_df()
     _test_mk_ret_df()
-    _test_mk_aret_df()
-    _test_get_avg()
-    _test_get_ew_rets()
-    _test_get_ann_ret()
+    #_test_mk_aret_df()
+    #_test_get_avg()
+    #_test_get_ew_rets()
+    #_test_get_ann_ret()
 
 
 

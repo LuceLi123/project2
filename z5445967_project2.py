@@ -88,8 +88,8 @@ def read_prc_csv(tic):
     file_path = os.path.join(cfg.DATADIR, f'{tic}_prc.csv')
     tic_df = pd.read_csv(file_path, index_col=0)
     tic_df.index = pd.DatetimeIndex(tic_df.index)
-
-    return cfg.standardise_colnames(tic_df)
+    tic_df = cfg.standardise_colnames(tic_df)
+    return tic_df
 
 
 
@@ -282,8 +282,8 @@ def mk_ret_df(prc_df):
     prc_df = prc_df.pct_change()
     prc_df.iloc[0] = None
 
-    df = pd.concat([prc_df, ff_daily], axis=1, join='inner')
-    return df
+    ret_df = pd.concat([prc_df, ff_daily], axis=1, join='inner')
+    return ret_df
 
 
 
@@ -981,10 +981,10 @@ if __name__ == "__main__":
     _test_read_prc_csv()
     _test_mk_prc_df()
     _test_mk_ret_df()
-    #_test_mk_aret_df()
-    #_test_get_avg()
-    #_test_get_ew_rets()
-    #_test_get_ann_ret()
+    _test_mk_aret_df()
+    _test_get_avg()
+    _test_get_ew_rets()
+    _test_get_ann_ret()
 
 
 

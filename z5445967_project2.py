@@ -22,7 +22,7 @@ import pandas as pd
 # package) is imported as "cfg"
 # Note: This module should be imported as cfg
 #
-import config as cfg
+from project2 import config as cfg
 
 
 
